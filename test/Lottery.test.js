@@ -8,62 +8,54 @@ const interface = compile.contracts['Lottery.sol'].Lottery.abi;
 const bytecode = compile.contracts['Lottery.sol'].Lottery.evm.bytecode.object;
 
 let lottery, accounts;
-// let accounts;
 
 beforeEach(async () => {
   accounts = await web3.eth.getAccounts();
-  lottery = await new web3.eth.Contract(interface).deploy({ data: bytecode }).send({ from: accounts[0], gas: '1000000'})
+  lottery = await new web3.eth.Contract(interface)
+    .deploy({ data: bytecode })
+    .send({ from: accounts[0], gas: '1000000' });
 });
-
 
 describe('Lottery contract', () => {
   it('deploys a conntract', () => {
     assert.ok(lottery.options.address);
-  })
-})
+  });
 
+  it('allows one account to enter', async () => {
+    await lottery.methods.enter().send({
+      from: accounts[0],
+      value: web3.utils.toWei('0.02', 'ether'),
+    });
 
+    const players = await lottery.methods.getPlayers().call({
+      from: accounts[0],
+    });
 
+    assert.strictEqual(accounts[0], players[0]);
+    assert.strictEqual(1, players.length);
+  });
 
+  it('allows multiple accounts to enter', async () => {
+    await lottery.methods.enter().send({
+      from: accounts[0],
+      value: web3.utils.toWei('0.02', 'ether'),
+    });
+    await lottery.methods.enter().send({
+      from: accounts[1],
+      value: web3.utils.toWei('0.02', 'ether'),
+    });
+    await lottery.methods.enter().send({
+      from: accounts[2],
+      value: web3.utils.toWei('0.02', 'ether'),
+    });
 
+    const players = await lottery.methods.getPlayers().call({
+      from: accounts[0],
+    });
 
-
-
-
-
-
-
-
-
-
-// let accounts, inbox;
-// const INITIAL_STRING = 'hi there';
-
-// beforeEach(async () => {
-//   // async function
-//   accounts = await web3.eth.getAccounts();
-//   inbox = await new web3.eth.Contract(interface)
-//     .deploy({
-//       data: bytecode,
-//       arguments: [INITIAL_STRING],
-//     })
-//     .send({ from: accounts[0], gas: '1000000' });
-// });
-
-// describe('Inbox', () => {
-//   it('deploys a contract', () => {
-//     // console.log(inbox.options.address);
-//     assert.ok(inbox.options.address);
-//   });
-
-//   it('has a default message', async () => {
-//     const message = await inbox.methods.message().call();
-//     assert.strictEqual(message, INITIAL_STRING);
-//   });
-
-//   it('can change the message', async () => {
-//     await inbox.methods.setMessage('bye').send({ from: accounts[0] });
-//     const message = await inbox.methods.message().call();
-//     assert.strictEqual(message, 'bye');
-//   });
-// });
+    assert.strictEqual(accounts[0], players[0]);
+    assert.strictEqual(accounts[1], players[1]);
+    assert.strictEqual(accounts[2], players[2]);
+    assert.strictEqual(3, players.length);
+  });
+});
